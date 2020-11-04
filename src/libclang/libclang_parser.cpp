@@ -373,6 +373,12 @@ void libclang_compile_config::do_set_flags(cpp_standard standard, compile_flags 
         else
             add_flag("-std=c++1z");
         break;
+    case cpp_standard::cpp_2a:
+        if (flags & compile_flag::gnu_extensions)
+            add_flag("-std=gnu++2a");
+        else
+            add_flag("-std=c++2a");
+        break;
     }
 
     if (flags & compile_flag::ms_compatibility)

@@ -24,6 +24,7 @@ enum class cpp_standard
     cpp_14,
 
     cpp_1z, //< Upcoming C++17 (experimental).
+    cpp_2a, //< Upcoming C++20 (experimental).
 
     cpp_latest = cpp_standard::cpp_14, //< The latest supported C++ standard.
 };
@@ -44,6 +45,8 @@ inline const char* to_string(cpp_standard standard) noexcept
         return "c++14";
     case cpp_standard::cpp_1z:
         return "c++1z";
+    case cpp_standard::cpp_2a:
+        return "c++2a";
     }
 
     DEBUG_UNREACHABLE(detail::assert_handler{});
