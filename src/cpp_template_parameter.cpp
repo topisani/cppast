@@ -16,6 +16,8 @@ const char* cppast::to_string(cpp_template_keyword kw) noexcept
         return "class";
     case cpp_template_keyword::keyword_typename:
         return "typename";
+    case cpp_template_keyword::a_concept:
+        return "<< CONCEPTS UNIMPLEMENTED >>";
     }
 
     return "should not get here";

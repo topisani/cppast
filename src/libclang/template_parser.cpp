@@ -7,6 +7,7 @@
 #include <cppast/cpp_function_template.hpp>
 
 #include <cppast/cpp_entity_kind.hpp>
+#include <iostream>
 
 #include "libclang_visitor.hpp"
 #include "parse_functions.hpp"
@@ -53,12 +54,36 @@ std::unique_ptr<cpp_template_parameter> parse_type_parameter(const detail::parse
     detail::cxtoken_stream stream(tokenizer, cur);
     auto                   name = detail::get_cursor_name(cur);
 
-    // syntax: typename/class [...] name [= ...]
-    auto keyword = cpp_template_keyword::keyword_class;
-    if (detail::skip_if(stream, "typename"))
-        keyword = cpp_template_keyword::keyword_typename;
-    else
-        detail::skip(stream, "class");
+    std::string concept_name = "";
+    detail::visit_children(cur, [&](const CXCursor& child) {
+        if (clang_getCursorKind(child) != CXCursor_UnexposedExpr)
+            return;
+        detail::cxtokenizer    tokenizer(context.tu, context.file, child);
+        detail::cxtoken_stream child_stream(tokenizer, child);
+        for (; !child_stream.done();)
+        {
+            concept_name += child_stream.get().c_str();
+            stream.bump();
+        }
+        // save variadic for later
+        if (!concept_name.empty() && concept_name.back() == '.') {
+          stream.bump_back();
+          concept_name.erase(concept_name.end() - 3, concept_name.end());
+        }
+    });
+
+    // syntax: typename/class/<concept> [...] name [= ...]
+    auto keyword = cpp_template_keyword::a_concept;
+    if (concept_name.empty())
+    {
+        if (detail::skip_if(stream, "typename"))
+            keyword = cpp_template_keyword::keyword_typename;
+        else
+        {
+            detail::skip(stream, "class");
+            keyword = cpp_template_keyword::keyword_class;
+        }
+    }
 
     auto variadic = false;
     if (detail::skip_if(stream, "..."))

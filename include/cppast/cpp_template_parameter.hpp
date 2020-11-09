@@ -37,7 +37,8 @@ private:
 enum class cpp_template_keyword
 {
     keyword_class,
-    keyword_typename
+    keyword_typename,
+    a_concept
 };
 
 /// \returns The string associated of the keyword.

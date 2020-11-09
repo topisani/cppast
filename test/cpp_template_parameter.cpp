@@ -31,6 +31,19 @@ using d = void;
 // potential maximal munch here, but ignore it
 template <typename E = a<void> >
 using e = void;
+
+// Concepts
+template<typename T>
+concept cpt_a = true;
+
+template<cpt_a F = a<void> >
+using f = void;
+
+template<typename T, typename U>
+concept cpt_b = true;
+
+template<cpt_b<void>... G>
+using g = void;
 )";
 
     cpp_entity_index idx;
@@ -95,12 +108,30 @@ using e = void;
                                         REQUIRE(equal_types(idx, param.default_type().value(),
                                                             *cpp_unexposed_type::build("a<void>")));
                                     }
+                                    else if (param.name() == "F")
+                                    {
+                                        REQUIRE(alias.name() == "f");
+                                        REQUIRE(param.keyword()
+                                                == cpp_template_keyword::a_concept);
+                                        REQUIRE(!param.is_variadic());
+                                        REQUIRE(param.default_type().has_value());
+                                        REQUIRE(equal_types(idx, param.default_type().value(),
+                                                            *cpp_unexposed_type::build("a<void>")));
+                                    }
+                                    else if (param.name() == "G")
+                                    {
+                                        REQUIRE(alias.name() == "g");
+                                        REQUIRE(param.keyword()
+                                                == cpp_template_keyword::a_concept);
+                                        REQUIRE(param.is_variadic());
+                                        REQUIRE(!param.default_type());
+                                    }
                                     else
                                         REQUIRE(false);
                                 }
                             },
                             false); // can't check synopsis with comments
-    REQUIRE(count == 5u);
+    REQUIRE(count == 7u);
 }
 
 TEST_CASE("cpp_non_type_template_parameter")
@@ -117,6 +148,11 @@ using c = void;
 
 template <void(* D)(...)>
 using d = void;
+
+constexpr int func() { return 0; }
+
+template <c<func()>(* E)(...)>
+using e = void;
 )";
 
     cpp_entity_index idx;
@@ -170,6 +206,20 @@ using d = void;
                                     else if (param.name() == "D")
                                     {
                                         REQUIRE(alias.name() == "d");
+
+                                        cpp_function_type::builder builder(
+                                            cpp_builtin_type::build(cpp_void));
+                                        builder.is_variadic();
+                                        REQUIRE(equal_types(idx, param.type(),
+                                                            *cpp_pointer_type::build(
+                                                                builder.finish())));
+
+                                        REQUIRE(!param.is_variadic());
+                                        REQUIRE(!param.default_value());
+                                    }
+                                    else if (param.name() == "E")
+                                    {
+                                        REQUIRE(alias.name() == "e");
 
                                         cpp_function_type::builder builder(
                                             cpp_builtin_type::build(cpp_void));
