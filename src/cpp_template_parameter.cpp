@@ -16,15 +16,13 @@ const char* cppast::to_string(cpp_template_keyword kw) noexcept
         return "class";
     case cpp_template_keyword::keyword_typename:
         return "typename";
-    case cpp_template_keyword::a_concept:
-        return "<< CONCEPTS UNIMPLEMENTED >>";
     }
 
     return "should not get here";
 }
 
 std::unique_ptr<cpp_template_type_parameter> cpp_template_type_parameter::build(
-    const cpp_entity_index& idx, cpp_entity_id id, std::string name, cpp_template_keyword kw,
+    const cpp_entity_index& idx, cpp_entity_id id, std::string name, cpp_template_keyword_or_constraint kw,
     bool variadic, std::unique_ptr<cpp_type> default_type)
 {
     std::unique_ptr<cpp_template_type_parameter> result(

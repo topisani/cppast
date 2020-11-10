@@ -292,11 +292,10 @@ bool generate_enum(code_generator& generator, const cpp_enum& e,
             output << opening_brace;
             output.indent();
 
-            auto need_sep = write_container(output, e,
-                                            [](const code_generator::output& out) {
-                                                out << punctuation(",") << newl;
-                                            },
-                                            cur_access);
+            auto need_sep = write_container(
+                output, e,
+                [](const code_generator::output& out) { out << punctuation(",") << newl; },
+                cur_access);
             if (need_sep)
                 output << newl;
 
@@ -873,7 +872,12 @@ bool generate_template_type_parameter(code_generator&                    generat
     code_generator::output output(type_safe::ref(generator), type_safe::ref(param), cur_access);
     if (output)
     {
-        output << keyword(to_string(param.keyword()));
+        auto kwoc = param.keyword_or_constraint();
+        if (kwoc.is_keyword()) {
+          output << keyword(kwoc.spelling());
+        } else {
+          output << token_seq(kwoc.spelling());
+        }
         if (param.is_variadic())
             output << operator_ws << punctuation("...");
         if (!param.name().empty())

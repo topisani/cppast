@@ -38,11 +38,47 @@ enum class cpp_template_keyword
 {
     keyword_class,
     keyword_typename,
-    a_concept
 };
 
 /// \returns The string associated of the keyword.
 const char* to_string(cpp_template_keyword kw) noexcept;
+
+/// \note Concepts are currently not exposed in libclang, so for now only the spelling of the
+/// constraint is available
+class cpp_template_keyword_or_constraint
+{
+public:
+    cpp_template_keyword_or_constraint(cpp_template_keyword kw) : data_(kw) {}
+    cpp_template_keyword_or_constraint(std::string constraint_spelling) : data_(constraint_spelling)
+    {}
+
+    std::string spelling() const noexcept
+    {
+        if (data_.has_value(type_safe::variant_type<cpp_template_keyword>()))
+        {
+            return to_string(data_.value(type_safe::variant_type<cpp_template_keyword>()));
+        }
+        else
+        {
+            return data_.value(type_safe::variant_type<std::string>());
+        }
+    }
+
+    type_safe::optional<cpp_template_keyword> keyword() const noexcept
+    {
+        if (is_keyword())
+            return data_.value(type_safe::variant_type<cpp_template_keyword>());
+        return type_safe::nullopt;
+    }
+
+    bool is_keyword() const noexcept
+    {
+        return data_.has_value(type_safe::variant_type<cpp_template_keyword>());
+    }
+
+private:
+    type_safe::variant<cpp_template_keyword, std::string> data_;
+};
 
 /// A [cppast::cpp_entity]() modelling a C++ template type parameter.
 class cpp_template_type_parameter final : public cpp_template_parameter
@@ -52,9 +88,12 @@ public:
 
     /// \returns A newly created and registered template type parameter.
     /// \notes The `default_type` may be `nullptr` in which case the parameter has no default.
-    static std::unique_ptr<cpp_template_type_parameter> build(
-        const cpp_entity_index& idx, cpp_entity_id id, std::string name, cpp_template_keyword kw,
-        bool variadic, std::unique_ptr<cpp_type> default_type = nullptr);
+    static std::unique_ptr<cpp_template_type_parameter> build(const cpp_entity_index& idx,
+                                                              cpp_entity_id id, std::string name,
+                                                              cpp_template_keyword_or_constraint kw,
+                                                              bool                      variadic,
+                                                              std::unique_ptr<cpp_type> default_type
+                                                              = nullptr);
 
     /// \returns A [ts::optional_ref]() to the default type.
     type_safe::optional_ref<const cpp_type> default_type() const noexcept
@@ -63,22 +102,22 @@ public:
     }
 
     /// \returns The keyword used in the template parameter.
-    cpp_template_keyword keyword() const noexcept
+    cpp_template_keyword_or_constraint keyword_or_constraint() const noexcept
     {
         return keyword_;
     }
 
 private:
-    cpp_template_type_parameter(std::string name, cpp_template_keyword kw, bool variadic,
-                                std::unique_ptr<cpp_type> default_type)
+    cpp_template_type_parameter(std::string name, cpp_template_keyword_or_constraint kw,
+                                bool variadic, std::unique_ptr<cpp_type> default_type)
     : cpp_template_parameter(std::move(name), variadic), default_type_(std::move(default_type)),
       keyword_(kw)
     {}
 
     cpp_entity_kind do_get_entity_kind() const noexcept override;
 
-    std::unique_ptr<cpp_type> default_type_;
-    cpp_template_keyword      keyword_;
+    std::unique_ptr<cpp_type>          default_type_;
+    cpp_template_keyword_or_constraint keyword_;
 };
 
 /// \exclude

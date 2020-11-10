@@ -63,7 +63,8 @@ using g = void;
                                     if (param.name() == "A")
                                     {
                                         REQUIRE(alias.name() == "a");
-                                        REQUIRE(param.keyword()
+                                        REQUIRE(param.keyword_or_constraint().is_keyword());
+                                        REQUIRE(param.keyword_or_constraint().keyword()
                                                 == cpp_template_keyword::keyword_typename);
                                         REQUIRE(!param.is_variadic());
                                         REQUIRE(!param.default_type());
@@ -71,7 +72,7 @@ using g = void;
                                     else if (param.name() == "B")
                                     {
                                         REQUIRE(alias.name() == "b");
-                                        REQUIRE(param.keyword()
+                                        REQUIRE(param.keyword_or_constraint().keyword()
                                                 == cpp_template_keyword::keyword_class);
                                         REQUIRE(param.is_variadic());
                                         REQUIRE(!param.default_type());
@@ -79,7 +80,7 @@ using g = void;
                                     else if (param.name() == "")
                                     {
                                         REQUIRE(alias.name() == "c");
-                                        REQUIRE(param.keyword()
+                                        REQUIRE(param.keyword_or_constraint().keyword()
                                                 == cpp_template_keyword::keyword_typename);
                                         REQUIRE(!param.is_variadic());
                                         REQUIRE(param.default_type().has_value());
@@ -90,7 +91,7 @@ using g = void;
                                     else if (param.name() == "D")
                                     {
                                         REQUIRE(alias.name() == "d");
-                                        REQUIRE(param.keyword()
+                                        REQUIRE(param.keyword_or_constraint().keyword()
                                                 == cpp_template_keyword::keyword_class);
                                         REQUIRE(!param.is_variadic());
                                         REQUIRE(param.default_type().has_value());
@@ -101,7 +102,7 @@ using g = void;
                                     else if (param.name() == "E")
                                     {
                                         REQUIRE(alias.name() == "e");
-                                        REQUIRE(param.keyword()
+                                        REQUIRE(param.keyword_or_constraint().keyword()
                                                 == cpp_template_keyword::keyword_typename);
                                         REQUIRE(!param.is_variadic());
                                         REQUIRE(param.default_type().has_value());
@@ -111,8 +112,7 @@ using g = void;
                                     else if (param.name() == "F")
                                     {
                                         REQUIRE(alias.name() == "f");
-                                        REQUIRE(param.keyword()
-                                                == cpp_template_keyword::a_concept);
+                                        REQUIRE(param.keyword_or_constraint().spelling() == "cpt_a");
                                         REQUIRE(!param.is_variadic());
                                         REQUIRE(param.default_type().has_value());
                                         REQUIRE(equal_types(idx, param.default_type().value(),
@@ -121,8 +121,7 @@ using g = void;
                                     else if (param.name() == "G")
                                     {
                                         REQUIRE(alias.name() == "g");
-                                        REQUIRE(param.keyword()
-                                                == cpp_template_keyword::a_concept);
+                                        REQUIRE(param.keyword_or_constraint().spelling() == "cpt_b<void>");
                                         REQUIRE(param.is_variadic());
                                         REQUIRE(!param.default_type());
                                     }
@@ -148,11 +147,6 @@ using c = void;
 
 template <void(* D)(...)>
 using d = void;
-
-constexpr int func() { return 0; }
-
-template <c<func()>(* E)(...)>
-using e = void;
 )";
 
     cpp_entity_index idx;
@@ -206,20 +200,6 @@ using e = void;
                                     else if (param.name() == "D")
                                     {
                                         REQUIRE(alias.name() == "d");
-
-                                        cpp_function_type::builder builder(
-                                            cpp_builtin_type::build(cpp_void));
-                                        builder.is_variadic();
-                                        REQUIRE(equal_types(idx, param.type(),
-                                                            *cpp_pointer_type::build(
-                                                                builder.finish())));
-
-                                        REQUIRE(!param.is_variadic());
-                                        REQUIRE(!param.default_value());
-                                    }
-                                    else if (param.name() == "E")
-                                    {
-                                        REQUIRE(alias.name() == "e");
 
                                         cpp_function_type::builder builder(
                                             cpp_builtin_type::build(cpp_void));
