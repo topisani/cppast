@@ -7,6 +7,7 @@
 #include <cppast/cpp_array_type.hpp>
 #include <cppast/cpp_class.hpp>
 #include <cppast/cpp_decltype_type.hpp>
+#include <cppast/cpp_placeholder_type.hpp>
 #include <cppast/cpp_entity.hpp>
 #include <cppast/cpp_entity_kind.hpp>
 #include <cppast/cpp_function_type.hpp>
@@ -192,6 +193,7 @@ bool is_direct_complex(const cpp_type& type) noexcept
     case cpp_type_kind::template_instantiation_t:
     case cpp_type_kind::dependent_t:
     case cpp_type_kind::unexposed_t:
+    case cpp_type_kind::placeholder_t:
         return false;
 
     case cpp_type_kind::array_t:
@@ -271,6 +273,11 @@ void write_decltype_auto(code_generator::output& output, const cpp_decltype_auto
 {
     output << keyword("decltype") << punctuation("(") << bracket_ws << keyword("auto") << bracket_ws
            << punctuation(")");
+}
+
+void write_placeholder(code_generator::output& output, const cpp_placeholder_type& type)
+{
+    output << token_seq(type.constraint()) << whitespace << keyword("auto");
 }
 
 void write_cv_qualified_prefix(code_generator::output& output, const cpp_cv_qualified_type& type)
@@ -519,6 +526,7 @@ void detail::write_type_prefix(code_generator::output& output, const cpp_type& t
         CPPAST_DETAIL_HANDLE(auto)
         CPPAST_DETAIL_HANDLE(decltype)
         CPPAST_DETAIL_HANDLE(decltype_auto)
+        CPPAST_DETAIL_HANDLE(placeholder)
         CPPAST_DETAIL_HANDLE_COMPLEX(cv_qualified)
         CPPAST_DETAIL_HANDLE_COMPLEX(pointer)
         CPPAST_DETAIL_HANDLE_COMPLEX(reference)
@@ -554,6 +562,7 @@ void detail::write_type_suffix(code_generator::output& output, const cpp_type& t
         CPPAST_DETAIL_HANDLE(auto)
         CPPAST_DETAIL_HANDLE(decltype)
         CPPAST_DETAIL_HANDLE(decltype_auto)
+        CPPAST_DETAIL_HANDLE(placeholder)
         CPPAST_DETAIL_HANDLE_COMPLEX(cv_qualified)
         CPPAST_DETAIL_HANDLE_COMPLEX(pointer)
         CPPAST_DETAIL_HANDLE_COMPLEX(reference)

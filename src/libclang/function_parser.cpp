@@ -519,9 +519,19 @@ std::unique_ptr<cpp_entity> parse_cpp_function_impl(const detail::parse_context&
     detail::cxtokenizer    tokenizer(context.tu, context.file, cur);
     detail::cxtoken_stream stream(tokenizer, cur);
 
-    auto prefix = parse_prefix_info(stream, name.c_str(), false);
-    DEBUG_ASSERT(!prefix.is_virtual && !prefix.is_explicit, detail::parse_error_handler{}, cur,
-                 "free function cannot be virtual or explicit");
+    // FIXME:
+    // For functions with c++20 placeholders (void f(auto a)) this stream is invalid.
+    // It is assumed to be a libclang bug.
+    bool is_valid_stream = stream.begin() != stream.end();
+
+    // We cannot parse prefix for functions with placeholder args
+    prefix_info prefix;
+    if (is_valid_stream)
+    {
+        prefix = parse_prefix_info(stream, name.c_str(), false);
+        DEBUG_ASSERT(!prefix.is_virtual && !prefix.is_explicit, detail::parse_error_handler{}, cur,
+                     "free function cannot be virtual or explicit");
+    }
 
     cpp_function::builder builder(name.c_str(),
                                   detail::parse_type(context, cur, clang_getCursorResultType(cur)));
@@ -537,9 +547,13 @@ std::unique_ptr<cpp_entity> parse_cpp_function_impl(const detail::parse_context&
     if (prefix.is_constexpr)
         builder.is_constexpr();
 
-    skip_parameters(stream);
-
-    auto suffix = parse_suffix_info(stream, context, false, false);
+    suffix_info suffix(cur);
+    // We cannot parse suffix for functions with placeholder args
+    if (is_valid_stream)
+    {
+        skip_parameters(stream);
+        suffix = parse_suffix_info(stream, context, false, false);
+    }
     builder.get().add_attribute(suffix.attributes);
     if (suffix.noexcept_condition)
         builder.noexcept_condition(std::move(suffix.noexcept_condition));

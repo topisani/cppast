@@ -8,6 +8,7 @@
 
 #include <cppast/cpp_array_type.hpp>
 #include <cppast/cpp_decltype_type.hpp>
+#include <cppast/cpp_placeholder_type.hpp>
 #include <cppast/cpp_expression.hpp>
 #include <cppast/cpp_function_type.hpp>
 #include <cppast/cpp_template.hpp>
@@ -518,6 +519,21 @@ std::unique_ptr<cpp_type> try_parse_decltype_type(const detail::parse_context&, 
     });
 }
 
+std::unique_ptr<cpp_type> try_parse_placeholder_type(const detail::parse_context&, const CXCursor& cur,
+                                                  const CXType& type)
+{
+    if (clang_isExpression(clang_getCursorKind(cur)))
+        return nullptr; // don't use decltype here
+
+    return make_leave_type(cur, type, [&](std::string&& spelling) -> std::unique_ptr<cpp_type> {
+        remove_suffix(spelling, "...", false); // variadic placeholder. fun
+        if (!remove_suffix(spelling, "auto", true))
+            return nullptr;
+        return cpp_placeholder_type::build(spelling);
+    });
+}
+
+
 std::unique_ptr<cpp_type> parse_type_impl(const detail::parse_context& context, const CXCursor& cur,
                                           const CXType& type)
 {
@@ -544,6 +560,9 @@ std::unique_ptr<cpp_type> parse_type_impl(const detail::parse_context& context, 
         else if (auto dtype = try_parse_decltype_type(context, cur, type))
             // decltype unexposed
             return dtype;
+        else if (auto ptype = try_parse_placeholder_type(context, cur, type))
+            // No surprise here
+            return ptype;
         else if (auto itype = try_parse_instantiation_type(context, cur, type))
             // instantiation unexposed
             return itype;

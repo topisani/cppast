@@ -5,6 +5,7 @@
 #include <cppast/cpp_function_template.hpp>
 
 #include <cppast/cpp_member_function.hpp>
+#include <cppast/cpp_placeholder_type.hpp>
 
 #include "test_parser.hpp"
 
@@ -285,4 +286,100 @@ d::d(const int&);
             REQUIRE(false);
     });
     REQUIRE(count == 5u);
+}
+
+TEST_CASE("cpp_function_placeholder_args")
+{
+    auto code = R"(
+template <int I>
+using type = int;
+
+template<typename T>
+concept cpt_a = true;
+
+template<typename T, typename U>
+concept cpt_b = true;
+
+[[nodiscard]] constexpr int a(const auto& t);
+
+void b(const cpt_a auto& t);
+void c(const cpt_b<int> auto& t);
+)";
+
+    cpp_entity_index idx;
+    auto             file = parse(idx, "cpp_function_placeholder_args.cpp", code);
+    auto count = test_visit<cpp_function_template>(*file, [&](const cpp_function_template& tfunc) {
+        REQUIRE(is_templated(tfunc.function()));
+        REQUIRE(!tfunc.scope_name());
+
+        if (tfunc.name() == "a")
+        {
+            // TODO: Is this right? 
+            // check_template_parameters(tfunc, {{cpp_entity_kind::template_type_parameter_t,
+            // "t:auto"}});
+
+            REQUIRE(tfunc.function().kind() == cpp_entity_kind::function_t);
+            auto& func = static_cast<const cpp_function&>(tfunc.function());
+
+            // FIXME: libclang exposes an invalid start range for functions with placeholder args,
+            // thus we cannot parse explicit, constexpr, virtual, attributes etc. 
+            // REQUIRE(func.is_constexpr());
+            // REQUIRE(has_attribute(func, "nodiscard"));
+
+            auto count = 0u;
+            for (auto& param : func.parameters())
+            {
+                ++count;
+                REQUIRE(
+                    equal_types(idx, param.type(),
+                                *cpp_reference_type::
+                                    build(cpp_cv_qualified_type::build(cpp_placeholder_type::build(
+                                                                           ""),
+                                                                       cpp_cv_const),
+                                          cpp_ref_lvalue)));
+            }
+            REQUIRE(count == 1u);
+        }
+        else if (tfunc.name() == "b")
+        {
+            REQUIRE(tfunc.function().kind() == cpp_entity_kind::function_t);
+            auto& func = static_cast<const cpp_function&>(tfunc.function());
+
+            auto count = 0u;
+            for (auto& param : func.parameters())
+            {
+                ++count;
+                REQUIRE(
+                    equal_types(idx, param.type(),
+                                *cpp_reference_type::
+                                    build(cpp_cv_qualified_type::build(cpp_placeholder_type::build(
+                                                                           "cpt_a"),
+                                                                       cpp_cv_const),
+                                          cpp_ref_lvalue)));
+            }
+            REQUIRE(count == 1u);
+        }
+        else if (tfunc.name() == "c")
+        {
+            REQUIRE(tfunc.function().kind() == cpp_entity_kind::function_t);
+            auto& func = static_cast<const cpp_function&>(tfunc.function());
+
+            auto count = 0u;
+            for (auto& param : func.parameters())
+            {
+                ++count;
+                REQUIRE(
+                    equal_types(idx, param.type(),
+                                *cpp_reference_type::
+                                    build(cpp_cv_qualified_type::build(cpp_placeholder_type::build(
+                                                                           "cpt_b<int>"),
+                                                                       cpp_cv_const),
+                                          cpp_ref_lvalue)));
+            }
+            REQUIRE(count == 1u);
+        }
+        else
+            REQUIRE(false);
+    }, false);
+    REQUIRE(count == 3u);
 }

@@ -36,6 +36,8 @@ enum class cpp_type_kind
     template_parameter_t,
     template_instantiation_t,
 
+    placeholder_t,
+
     dependent_t,
 
     unexposed_t,
