@@ -240,6 +240,12 @@ libclang_compile_config::libclang_compile_config(const libclang_compilation_data
             else if (flag == "-f")
                 // other options
                 add_flag(std::move(flag) + std::move(args));
+            else if (flag == "--sysroot" || flag == "-isysroot") {
+                add_flag(std::move(flag) + "=" + std::move(args));
+            }
+            else if (flag == "-nostdinc" || flag == "--no-standard-includes"
+                     || flag == "-nostdinc++" || flag == "-nobuiltininc")
+                add_flag(flag);
         });
     }
 }
@@ -248,8 +254,8 @@ namespace
 {
 bool is_valid_binary(const std::string& binary)
 {
-    tpl::Process process(binary + " -v", "", [](const char*, std::size_t) {},
-                         [](const char*, std::size_t) {});
+    tpl::Process process(
+        binary + " -v", "", [](const char*, std::size_t) {}, [](const char*, std::size_t) {});
     return process.get_exit_status() == 0;
 }
 
@@ -262,11 +268,10 @@ bool is_valid_binary(const std::string& binary)
 void add_default_include_dirs(libclang_compile_config& config)
 {
     std::string  verbose_output;
-    tpl::Process process(detail::libclang_compile_config_access::clang_binary(config)
-                             + " -x c++ -v -",
-                         "", [](const char*, std::size_t) {},
-                         [&](const char* str, std::size_t n) { verbose_output.append(str, n); },
-                         true);
+    tpl::Process process(
+        detail::libclang_compile_config_access::clang_binary(config) + " -x c++ -v -", "",
+        [](const char*, std::size_t) {},
+        [&](const char* str, std::size_t n) { verbose_output.append(str, n); }, true);
     process.write("", 1);
     process.close_stdin();
     process.get_exit_status();
